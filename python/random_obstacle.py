@@ -12,7 +12,7 @@ class RandomObstacleGenerator():
             "{}/{:02d}.png".format(DIR, i) for i in range(N_OBSTACLES)
         ])
 
-    def __call__(self, bg, MAX_OBSTACLES=5):
+    def __call__(self, bg, MAX_OBSTACLES=5, color_aug=None):
         n_obstacles = np.random.randint(MAX_OBSTACLES)
 
         if n_obstacles == 0:
@@ -23,19 +23,16 @@ class RandomObstacleGenerator():
 
         try:
             for i in range(n_obstacles):
-                result, mask = self.gen_obstacles(result)
+                result, mask = self.gen_obstacles(result, color_aug)
                 total_mask |= mask
         except:
             return bg, np.zeros(bg.shape[:2], dtype=np.bool)
 
         return result, total_mask
 
-    def paste(self, bg, fg, x0, y0):
+    def paste(self, bg, fg, maks, x0, y0):
 
         # print "bg.shape = {}, fg.shape = {}, x0 = {}, y0 = {}".format(bg.shape, fg.shape, x0, y0)
-
-        mask = (fg[:, :, -1] > 10)[..., None]
-
         s0, s1 = fg.shape[:2]
 
         merged = fg * mask + bg[y0:y0+s0, x0:x0+s1, :] * (1.0 - mask)
@@ -74,7 +71,7 @@ class RandomObstacleGenerator():
 
         return x0, y0, size
 
-    def gen_obstacles(self, bg):
+    def gen_obstacles(self, bg, color_aug):
 
         x0, y0, size = self.get_random_location_and_size(bg)
 
@@ -88,8 +85,13 @@ class RandomObstacleGenerator():
         oW = int(obstacle.shape[1] * size[1])
         oH = int(obstacle.shape[0] * size[0])
 
-        rescaled_obstacle = cv2.resize(obstacle, (oW, oH))
+        obstacle = cv2.resize(obstacle, (oW, oH))
 
-        result, mask = self.paste(bg, rescaled_obstacle, x0, y0)
+        mask = (obstacle[:, :, -1] > 10)[..., None]
+
+        if color_aug is not None:
+            obstacle = color_aug(obstacle)
+
+        result, mask = self.paste(bg, obstacle, mask, x0, y0)
 
         return result, mask
