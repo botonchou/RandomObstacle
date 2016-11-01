@@ -2,7 +2,9 @@ import os
 import cv2
 import PIL.Image
 import numpy as np
-from tensorflow_helnet.utils import rand
+
+def rand(minval=0, maxval=1):
+    return np.random.random() * (maxval - minval) + minval
 
 class RandomObstacleGenerator():
     def __init__(self):
